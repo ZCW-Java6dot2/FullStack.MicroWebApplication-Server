@@ -2,30 +2,74 @@ package runner.controllers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import runner.entities.Account;
-import runner.entities.User;
+import runner.entities.Transaction;
 import runner.services.AccountServices;
+import runner.services.CustomerServices;
 import java.util.Optional;
-@RequestMapping("/account")
+import java.util.Set;
+import java.util.stream.Collectors;
+
+@RequestMapping("/myaccount")
 @RestController
 public class AccountController {
+
     @Autowired
     private AccountServices accountServices;
-    @GetMapping(value = "/read/{id}")
-    public ResponseEntity<Account> readById(@PathVariable Long id) {
-        return new ResponseEntity<>(accountServices.readAccount(id), HttpStatus.OK);
+
+    /**
+     * This controller is used only for JWT testing purposes
+     * */
+    @GetMapping(value = "/test")
+    public String testJWT() {
+        return "Hello World";
     }
+
+    //get accounts for the authenticated user only, THIS is the homepage once user has logged in
+    @GetMapping
+    public ResponseEntity<Set<Account>> readAllAccount() {
+       String currentPrincipalName = SecurityContextHolder.getContext().getAuthentication().getName();
+       return new ResponseEntity<>(accountServices.getAllAccounts(currentPrincipalName), HttpStatus.OK);
+    }
+
+    @GetMapping(value = "/{accountEncryptedUrl}")
+    public ResponseEntity<Account> readAccountById(@PathVariable String accountEncryptedUrl){
+        return new ResponseEntity<>(accountServices.findAccountByEncryptedUrl(accountEncryptedUrl), HttpStatus.OK);
+    }
+
+    //REMOVE if not needed
     @PostMapping(value = "/create")
     public ResponseEntity<Account> create(@RequestBody Account account) {
         return new ResponseEntity<>(accountServices.createAccount(account), HttpStatus.CREATED);
     }
+
+    //REMOVE if not needed
     @PutMapping(value = "/update/{id}")
-    public ResponseEntity<Optional<Account>> update(@RequestBody Account account, @PathVariable Long id) {
+    public ResponseEntity<Optional<Account>> update(@RequestBody Account account, @PathVariable Long id) throws Exception {
         return new ResponseEntity<>(accountServices.updateAccount(id,account), HttpStatus.OK);
     }
-    @DeleteMapping(value = "/delete/{id}")
-    public ResponseEntity<Boolean> deleteById(@PathVariable Long id) {
-        return new ResponseEntity<>(accountServices.removeAccount(id), HttpStatus.OK);
+
+    //This needs to be rewritten with "encryptedUrl/delete", need to doublecheck if deleting account deletes User due to cascade.ALL
+    @DeleteMapping(value = "/{encryptedUrl}/delete")
+    public ResponseEntity<Boolean> deleteById(@PathVariable String encryptedUrl){
+        return new ResponseEntity<>(accountServices.removeAccount(encryptedUrl), HttpStatus.OK);
+    }
+
+    @PutMapping(value = "/{encryptedUrl}/deposit")
+    public ResponseEntity<Account> updateAccountDeposit(@RequestBody Transaction transaction, @PathVariable String encryptedUrl) throws Exception {
+        return new ResponseEntity<>(accountServices.deposit(transaction,encryptedUrl), HttpStatus.OK);
+    }
+
+    @PutMapping(value = "/{encryptedUrl}/withdraw")
+    public ResponseEntity<Account> updateAccountWithdraw(@RequestBody Transaction transaction, @PathVariable String encryptedUrl) throws Exception {
+        return new ResponseEntity<>(accountServices.withdraw(transaction,encryptedUrl), HttpStatus.OK);
+    }
+
+    //same method as withdraw since JSON payload is same, only front end is different
+    @PutMapping(value = "/<encryptedUrl}/transfer")
+    public ResponseEntity<Account> updateAccountTransfer(@RequestBody Transaction transaction, @PathVariable String encryptedUrl) throws Exception {
+        return new ResponseEntity<>(accountServices.withdraw(transaction,encryptedUrl), HttpStatus.OK);
     }
 }

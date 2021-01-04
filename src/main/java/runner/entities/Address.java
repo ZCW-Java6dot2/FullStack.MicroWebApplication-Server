@@ -1,12 +1,11 @@
 package runner.entities;
 
 import javax.persistence.*;
-import java.time.LocalDate;
 
 @Entity
 public class Address {
     @Id
-    @Column(name = "userId") //references userID from user
+    @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
     @Column(nullable = false)
     private String firstLine;
@@ -18,11 +17,6 @@ public class Address {
     private String state;
     @Column(nullable = false)
     private String zipcode;
-
-    @OneToOne
-    @MapsId
-    @JoinColumn(name = "userId")
-    private User user;
 
     public Long getId() {
         return id;
